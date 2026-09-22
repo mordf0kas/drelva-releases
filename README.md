@@ -1,6 +1,6 @@
 # Drelva Scope — downloads
 
-Master-bus phosphor oscilloscope plugin (VST3/Standalone) by DRELVA.
+Audio-reactive visual engine plugin (VST3/Standalone) by DRELVA: draw frequency bands, route them to a stack of visual layers (phosphor scope, spectrum, tunnel, spiral, image / GIF frame bank, feedback).
 
 This repo hosts only the installer downloads — no source code (that lives in a private repo).
 
