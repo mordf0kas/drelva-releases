@@ -6,7 +6,7 @@ bank, camera, feedback).
 
 This repo hosts only the installer downloads — no source code (that lives in a private repo).
 
-See the [Releases](../../releases) tab for the Windows `.exe` and macOS `.dmg` installers.
+See the [Releases](../../releases) tab for the Windows `.exe` and macOS `.dmg` installers and the PDF manual.
 
 | Version | What's in it |
 |---|---|
