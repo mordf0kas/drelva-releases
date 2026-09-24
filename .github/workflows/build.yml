@@ -1,0 +1,120 @@
+# Builds Drelva Scope from the PRIVATE source repo (mordf0kas/drelva) and publishes the installers here.
+# Runs in this public repo because Actions minutes are free for public repos; the source is fetched
+# with a read-only deploy key (secret DRELVA_SRC_KEY) and never stored here. Only the installers
+# (Setup.exe + .dmg) and the manual end up public, in the release.
+# Run it by hand: Actions -> build -> Run workflow.
+name: build
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch / tag / commit of mordf0kas/drelva to build"
+        default: main
+      publish:
+        description: "Publish the installers as release v<version> here (version from CMakeLists.txt)"
+        type: boolean
+        default: true
+      update_notes:
+        description: "Also replace the release text (notes/v<version>.md, else the CHANGELOG section)"
+        type: boolean
+        default: false
+permissions:
+  contents: write
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Fetch the source (private repo, read-only deploy key)
+        uses: actions/checkout@v4
+        with:
+          repository: mordf0kas/drelva
+          ref: ${{ inputs.ref }}
+          ssh-key: ${{ secrets.DRELVA_SRC_KEY }}
+          persist-credentials: false
+      - name: Fetch JUCE 8.0.4
+        run: git clone --depth 1 --branch 8.0.4 https://github.com/juce-framework/JUCE.git JUCE
+      - name: Configure
+        shell: bash
+        run: |
+          if [ "${{ matrix.os }}" = "macos-latest" ]; then
+            cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+          else
+            cmake -B build
+          fi
+      - name: Engine unit test
+        shell: bash
+        run: |
+          cmake --build build --config Release --target drelva_core_test --parallel 4
+          if [ -f build/Release/drelva_core_test.exe ]; then build/Release/drelva_core_test.exe Tests/data/bars.gif; else build/drelva_core_test Tests/data/bars.gif; fi
+      - name: JUCE self-test
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          cmake --build build --config Release --target drelva_snapshot --parallel 4
+          build/drelva_snapshot_artefacts/Release/drelva_snapshot.exe --selftest Tests/data/bars.gif
+      - name: Build VST3 + Standalone
+        run: cmake --build build --config Release --target DrelvaScope_VST3 DrelvaScope_Standalone --parallel 4
+      - name: Build Windows installer (Standalone + VST3)
+        if: matrix.os == 'windows-latest'
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\DrelvaScope.iss'
+        shell: pwsh
+      - name: Package macOS installer (.pkg inside a .dmg)
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          VERSION=$(sed -n 's/^project(DrelvaScope VERSION \([0-9.]*\)).*/\1/p' CMakeLists.txt)
+          bash installer/macos/build_mac_installer.sh build/DrelvaScope_artefacts/Release \
+            "Drelva Scope" com.drelva.scope.installer "$VERSION" installer/macos
+      - name: Collect release files
+        shell: bash
+        run: |
+          mkdir -p out
+          VERSION=$(sed -n 's/^project(DrelvaScope VERSION \([0-9.]*\)).*/\1/p' CMakeLists.txt)
+          echo "$VERSION" > out/VERSION
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            cp installer_out/DrelvaScope-Setup.exe out/
+            MANUAL="docs/DrelvaScope_v${VERSION%.*}_Manual.pdf"
+            if [ -f "$MANUAL" ]; then cp "$MANUAL" out/; fi
+            awk -v h="## v$VERSION" '$0 == h { on = 1; next } /^## v/ { on = 0 } on' CHANGELOG.md > out/CHANGELOG_section.md
+          else
+            cp installer/macos/DrelvaScope.dmg out/
+          fi
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DrelvaScope-${{ matrix.os }}
+          path: out
+
+  release:
+    needs: build
+    if: inputs.publish
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4          # this repo (for notes/)
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish
+        run: |
+          VERSION=$(cat dist/VERSION); TAG="v$VERSION"
+          FILES=(dist/DrelvaScope-Setup.exe dist/DrelvaScope.dmg)
+          for f in dist/DrelvaScope_v*_Manual.pdf; do [ -f "$f" ] && FILES+=("$f"); done
+          for f in "${FILES[@]}"; do [ -s "$f" ] || { echo "::error::missing $f"; exit 1; }; done
+          if [ -s "notes/$TAG.md" ]; then cp "notes/$TAG.md" notes.md; else cp dist/CHANGELOG_section.md notes.md; fi
+          sed -i '1{/^# /d}' notes.md; sed -i '/./,$!d' notes.md
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" "${FILES[@]}" --clobber
+            if [ "${{ inputs.update_notes }}" = "true" ]; then gh release edit "$TAG" --notes-file notes.md; fi
+            echo "Updated the installers of $TAG" >> "$GITHUB_STEP_SUMMARY"
+          else
+            gh release create "$TAG" "${FILES[@]}" --title "Drelva Scope $TAG" --notes-file notes.md --latest
+            echo "Published $TAG" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "https://github.com/${{ github.repository }}/releases/tag/$TAG" >> "$GITHUB_STEP_SUMMARY"
