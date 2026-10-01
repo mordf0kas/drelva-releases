@@ -68,7 +68,7 @@ jobs:
         run: |
           VERSION=$(sed -n 's/^project(DrelvaScope VERSION \([0-9.]*\)).*/\1/p' CMakeLists.txt)
           bash installer/macos/build_mac_installer.sh build/DrelvaScope_artefacts/Release \
-            "Drelva Scope" com.drelva.scope.installer "$VERSION" installer/macos
+            "Scope" com.drelva.scope.installer "$VERSION" installer/macos
       - name: Collect release files
         shell: bash
         run: |
@@ -81,7 +81,7 @@ jobs:
             if [ -f "$MANUAL" ]; then cp "$MANUAL" out/; fi
             awk -v h="## v$VERSION" '$0 == h { on = 1; next } /^## v/ { on = 0 } on' CHANGELOG.md > out/CHANGELOG_section.md
           else
-            cp installer/macos/DrelvaScope.dmg out/
+            cp installer/macos/Scope.dmg out/DrelvaScope.dmg
           fi
           ls -la out
       - uses: actions/upload-artifact@v4
@@ -114,7 +114,7 @@ jobs:
             if [ "${{ inputs.update_notes }}" = "true" ]; then gh release edit "$TAG" --notes-file notes.md; fi
             echo "Updated the installers of $TAG" >> "$GITHUB_STEP_SUMMARY"
           else
-            gh release create "$TAG" "${FILES[@]}" --title "Drelva Scope $TAG" --notes-file notes.md --latest
+            gh release create "$TAG" "${FILES[@]}" --title "Scope $TAG" --notes-file notes.md --latest
             echo "Published $TAG" >> "$GITHUB_STEP_SUMMARY"
           fi
           echo "https://github.com/${{ github.repository }}/releases/tag/$TAG" >> "$GITHUB_STEP_SUMMARY"
