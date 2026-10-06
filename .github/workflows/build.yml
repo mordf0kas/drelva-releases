@@ -3,7 +3,7 @@
 # with a read-only deploy key (secret DRELVA_SRC_KEY) and never stored here. Only the installers
 # (Setup.exe + .dmg) and the manual end up public, in the release.
 # Run it by hand: Actions -> build -> Run workflow.
-name: build
+name: Scope Touchpad Test macOS build
 on:
   workflow_dispatch:
     inputs:
@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest]
+        os: [macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Fetch the source (private repo, read-only deploy key)
@@ -56,8 +56,8 @@ jobs:
         run: |
           cmake --build build --config Release --target drelva_snapshot --parallel 4
           build/drelva_snapshot_artefacts/Release/drelva_snapshot.exe --selftest Tests/data/bars.gif
-      - name: Build VST3 + Standalone
-        run: cmake --build build --config Release --target DrelvaScope_VST3 DrelvaScope_Standalone --parallel 4
+      - name: Build Scope Touchpad Test VST3
+        run: cmake --build build --config Release --target DrelvaScope_VST3 --parallel 4
       - name: Build Windows installer (Standalone + VST3)
         if: matrix.os == 'windows-latest'
         run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\DrelvaScope.iss'
@@ -68,7 +68,7 @@ jobs:
         run: |
           VERSION=$(sed -n 's/^project(DrelvaScope VERSION \([0-9.]*\)).*/\1/p' CMakeLists.txt)
           bash installer/macos/build_mac_installer.sh build/DrelvaScope_artefacts/Release \
-            "Scope" com.drelva.scope.installer "$VERSION" installer/macos
+            "Scope Touchpad Test" com.drelva.scope-touchpad-test.installer "$VERSION" installer/macos
       - name: Collect release files
         shell: bash
         run: |
@@ -81,12 +81,13 @@ jobs:
             if [ -f "$MANUAL" ]; then cp "$MANUAL" out/; fi
             awk -v h="## v$VERSION" '$0 == h { on = 1; next } /^## v/ { on = 0 } on' CHANGELOG.md > out/CHANGELOG_section.md
           else
-            cp installer/macos/Scope.dmg out/DrelvaScope.dmg
+            cp installer/macos/ScopeTouchpadTest-Installer.pkg out/Drelva-Scope-Touchpad-Test-Installer.pkg
+            cp installer/macos/ScopeTouchpadTest.dmg out/Drelva-Scope-Touchpad-Test.dmg
           fi
           ls -la out
       - uses: actions/upload-artifact@v4
         with:
-          name: DrelvaScope-${{ matrix.os }}
+          name: DrelvaScopeTouchpadTest-${{ matrix.os }}
           path: out
 
   release:
