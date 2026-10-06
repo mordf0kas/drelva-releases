@@ -56,8 +56,8 @@ jobs:
         run: |
           cmake --build build --config Release --target drelva_snapshot --parallel 4
           build/drelva_snapshot_artefacts/Release/drelva_snapshot.exe --selftest Tests/data/bars.gif
-      - name: Build VST3 + Standalone
-        run: cmake --build build --config Release --target DrelvaScope_VST3 DrelvaScope_Standalone --parallel 4
+      - name: Build Scope UI Beta VST3
+        run: cmake --build build --config Release --target DrelvaScope_VST3 --parallel 4
       - name: Build Windows installer (Standalone + VST3)
         if: matrix.os == 'windows-latest'
         run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\DrelvaScope.iss'
