@@ -56,6 +56,7 @@ jobs:
         run: |
           cmake --build build --config Release --target drelva_snapshot --parallel 4
           build/drelva_snapshot_artefacts/Release/drelva_snapshot.exe --selftest Tests/data/bars.gif
+          build/drelva_snapshot_artefacts/Release/drelva_snapshot.exe --presetnavtest
       - name: Build VST3
         run: cmake --build build --config Release --target DrelvaScope_VST3 --parallel 4
       - name: Build AU
