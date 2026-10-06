@@ -68,7 +68,7 @@ jobs:
         run: |
           VERSION=$(sed -n 's/^project(DrelvaScope VERSION \([0-9.]*\)).*/\1/p' CMakeLists.txt)
           bash installer/macos/build_mac_installer.sh build/DrelvaScope_artefacts/Release \
-            "Scope UI Beta" com.drelva.scope-ui-beta.installer "$VERSION" installer/macos
+            "Scope UI" com.drelva.scope-ui-beta.installer "$VERSION" installer/macos
       - name: Collect release files
         shell: bash
         run: |
@@ -81,8 +81,8 @@ jobs:
             if [ -f "$MANUAL" ]; then cp "$MANUAL" out/; fi
             awk -v h="## v$VERSION" '$0 == h { on = 1; next } /^## v/ { on = 0 } on' CHANGELOG.md > out/CHANGELOG_section.md
           else
-            cp installer/macos/ScopeUIBeta-Installer.pkg out/Drelva-Scope-UI-Beta-Installer.pkg
-            cp installer/macos/ScopeUIBeta.dmg out/Drelva-Scope-UI-Beta.dmg
+            cp installer/macos/ScopeUI-Installer.pkg out/Drelva-Scope-UI-Beta-Installer.pkg
+            cp installer/macos/ScopeUI.dmg out/Drelva-Scope-UI-Beta.dmg
           fi
           ls -la out
       - uses: actions/upload-artifact@v4
