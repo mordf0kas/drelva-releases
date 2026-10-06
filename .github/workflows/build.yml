@@ -84,7 +84,7 @@ jobs:
             awk -v h="## v$VERSION" '$0 == h { on = 1; next } /^## v/ { on = 0 } on' CHANGELOG.md > out/CHANGELOG_section.md
           else
             cp installer/macos/Scope.dmg out/DrelvaScope.dmg
-            cp installer/macos/Scope-Installer.pkg out/Scope-v1.0-macOS.pkg
+            cp installer/macos/Scope-Installer.pkg out/Scope-v${VERSION}-macOS.pkg
           fi
           ls -la out
       - uses: actions/upload-artifact@v4
@@ -107,7 +107,7 @@ jobs:
       - name: Publish
         run: |
           VERSION=$(cat dist/VERSION); TAG="v$VERSION"
-          FILES=(dist/DrelvaScope-Setup.exe dist/DrelvaScope.dmg dist/Scope-v1.0-macOS.pkg dist/Scope-v1-Manual.pdf)
+          FILES=(dist/DrelvaScope-Setup.exe dist/DrelvaScope.dmg dist/Scope-v${VERSION}-macOS.pkg dist/Scope-v1-Manual.pdf)
           for f in "${FILES[@]}"; do [ -s "$f" ] || { echo "::error::missing $f"; exit 1; }; done
           if [ -s "notes/$TAG.md" ]; then cp "notes/$TAG.md" notes.md; else cp dist/CHANGELOG_section.md notes.md; fi
           sed -i '1{/^# /d}' notes.md; sed -i '/./,$!d' notes.md
