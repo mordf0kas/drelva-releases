@@ -56,9 +56,12 @@ jobs:
         run: |
           cmake --build build --config Release --target drelva_snapshot --parallel 4
           build/drelva_snapshot_artefacts/Release/drelva_snapshot.exe --selftest Tests/data/bars.gif
-      - name: Build VST3 + Standalone
-        run: cmake --build build --config Release --target DrelvaScope_VST3 DrelvaScope_Standalone --parallel 4
-      - name: Build Windows installer (Standalone + VST3)
+      - name: Build VST3
+        run: cmake --build build --config Release --target DrelvaScope_VST3 --parallel 4
+      - name: Build AU
+        if: matrix.os == 'macos-latest'
+        run: cmake --build build --config Release --target DrelvaScope_AU --parallel 4
+      - name: Build Windows installer (VST3 only)
         if: matrix.os == 'windows-latest'
         run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\DrelvaScope.iss'
         shell: pwsh
@@ -77,11 +80,11 @@ jobs:
           echo "$VERSION" > out/VERSION
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             cp installer_out/DrelvaScope-Setup.exe out/
-            MANUAL="docs/DrelvaScope_v${VERSION%.*}_Manual.pdf"
-            if [ -f "$MANUAL" ]; then cp "$MANUAL" out/; fi
+            cp docs/Scope-v1-Manual.pdf out/Scope-v1-Manual.pdf
             awk -v h="## v$VERSION" '$0 == h { on = 1; next } /^## v/ { on = 0 } on' CHANGELOG.md > out/CHANGELOG_section.md
           else
             cp installer/macos/Scope.dmg out/DrelvaScope.dmg
+            cp installer/macos/Scope-Installer.pkg out/Scope-v1.0-macOS.pkg
           fi
           ls -la out
       - uses: actions/upload-artifact@v4
@@ -104,8 +107,7 @@ jobs:
       - name: Publish
         run: |
           VERSION=$(cat dist/VERSION); TAG="v$VERSION"
-          FILES=(dist/DrelvaScope-Setup.exe dist/DrelvaScope.dmg)
-          for f in dist/DrelvaScope_v*_Manual.pdf; do [ -f "$f" ] && FILES+=("$f"); done
+          FILES=(dist/DrelvaScope-Setup.exe dist/DrelvaScope.dmg dist/Scope-v1.0-macOS.pkg dist/Scope-v1-Manual.pdf)
           for f in "${FILES[@]}"; do [ -s "$f" ] || { echo "::error::missing $f"; exit 1; }; done
           if [ -s "notes/$TAG.md" ]; then cp "notes/$TAG.md" notes.md; else cp dist/CHANGELOG_section.md notes.md; fi
           sed -i '1{/^# /d}' notes.md; sed -i '/./,$!d' notes.md
