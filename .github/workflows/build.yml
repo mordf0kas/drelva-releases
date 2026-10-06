@@ -43,8 +43,8 @@ jobs:
         timeout-minutes: 6
         run: |
           APP=build/drelva_snapshot_artefacts/Release/drelva_snapshot.app/Contents/MacOS/drelva_snapshot
-          "$APP" "$PWD/out/render720" --export 3 --export-mp4 --export-height 720 --preset 0
-          "$APP" "$PWD/out/render1080" --export 3 --export-mp4 --export-height 1080 --preset 0
+          "$APP" "$PWD/out/render720" --export 3 --export-mp4 --export-height 720 --preset 0 --onscreen
+          "$APP" "$PWD/out/render1080" --export 3 --export-mp4 --export-height 1080 --preset 0 --onscreen
           swift Tests/validate_mp4.swift "$PWD/out" --rendered
       - name: Package validated VST3 and AU only
         if: matrix.os == 'macos-15'
